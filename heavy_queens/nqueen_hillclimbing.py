@@ -109,7 +109,7 @@ def hillclimbing(board,max_iter=1000, max_stuck=20):
         count+=1
         h = heuristic_matrix(board_buf)
         hlist.append(heuristic(board_buf))
-        if min(hlist) == hlist[-1]:
+        if min(hlist) == hlist[-1] or hlist[-2] == hlist[-1]:
             count_stuck += 1
         movable_pos = [list(i) for i in zip(np.where(h == np.min(h))[0], np.where(h == np.min(h))[1])]
         moving_pos = movable_pos[np.random.choice(len(movable_pos),1)[0]]
