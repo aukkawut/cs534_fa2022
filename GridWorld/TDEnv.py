@@ -9,13 +9,14 @@ def is_valid_file(parser, arg):
         parser.error("The file %s does not exist!" % arg)
     else:
         return open(arg, 'r')  # return an open file handle
-def generate_random_world(size,pw = 0.2, prp = 0.2, prn = 0.2):
+def generate_random_world(size,pw = 0.1, prp = 0.05, prn = 0.05,pwh = 0.1):
     '''
     This function generates a random gridworld.
     size: size of the gridworld
     pw: probability of a wall in the gridworld
     prp: probability of a positive reward in the gridworld
     prn: probability of a negative reward in the gridworld
+    pwh: probability of a wormhole in the gridworld
     '''
     grid = np.zeros((size+1, size+1), dtype='object')
     #make sure that outside the grid is a wall
@@ -25,15 +26,26 @@ def generate_random_world(size,pw = 0.2, prp = 0.2, prn = 0.2):
     grid[:, -1] = 'X'
     for i in range(1, size - 1):
         for j in range(1, size - 1):
-            if np.random.random() < pw:
-                grid[i, j] = 'X'
-            elif np.random.random() < prp:
-                grid[i, j] = str(np.random.randint(1, 9))
-            elif np.random.random() < prn:
-                grid[i, j] = str(-np.random.randint(1, 9))
-            else:
-                grid[i, j] = '0'
+            if grid[i,j] != 'W':
+                if np.random.random() < pw:
+                    grid[i, j] = 'X'
+                elif np.random.random() < prp:
+                    grid[i, j] = str(np.random.randint(1, 9))
+                elif np.random.random() < prn:
+                    grid[i, j] = str(-np.random.randint(1, 9))
+                elif np.random.random() < pwh:
+                    #create a pair of wormholes
+                    grid[i, j] = 'W'
+                    while True:
+                        x = np.random.randint(1, size)
+                        y = np.random.randint(1, size)
+                        if grid[x, y] == 0 or grid[x, y] == '0':
+                            grid[x, y] = 'W'
+                            break
+                else:
+                    grid[i, j] = '0'
     grid[size-1, 1] = 'S'
+
     return grid
 class GridWorld(gym.Env):
     '''
@@ -55,7 +67,7 @@ class GridWorld(gym.Env):
     The agent will get the reward for the square it is in. However, if it moves two steps
     the reward will be the tile it ends up in.
     '''
-    def __init__(self,p,r,gridFile) -> None:
+    def __init__(self,p,r,gridFile,pW,prP,prN,pWh,size) -> None:
         self.grid = []
         self.actions = ['up', 'down', 'left', 'right']
         self.action_space = gym.spaces.Discrete(len(self.actions))
@@ -67,6 +79,11 @@ class GridWorld(gym.Env):
         self.reward = 0
         self.done = False
         self.p = p
+        self.pW = pW
+        self.prP = prP
+        self.prN = prN
+        self.pWh = pWh
+        self.size = size
         self.r = r
         self.read_grid(gridFile)
         self.reset()
@@ -80,7 +97,10 @@ class GridWorld(gym.Env):
                 self.grid.append(line.strip().split('\t'))
             self.grid = np.array(self.grid)
         except:
-            self.grid = generate_random_world(10)
+            try:
+                self.grid = generate_random_world(self.size,self.pW,self.prP,self.prN,self.pWh)
+            except:
+                raise Exception('No grid file or size provided')
         self.observation_space = gym.spaces.Discrete(self.grid.shape[0] * self.grid.shape[1])
         self.start = np.argwhere(self.grid == 'S')[0]
         self.current = self.start
@@ -119,7 +139,10 @@ class GridWorld(gym.Env):
         else:
             self.envAction = "Backward"
             self.current = self.move(self.current, (action + 2)%4)
-        if str(self.grid[self.current[0], self.current[1]]) != '0' and str(self.grid[self.current[0], self.current[1]]) !='S':
+        #if we hit wormhole, we go to the other wormhole
+        if self.grid[self.current[0], self.current[1]] == 'W':
+            self.current = np.argwhere(self.grid == 'W')[0] if self.current[0] == np.argwhere(self.grid == 'W')[1][0] else np.argwhere(self.grid == 'W')[1]
+        if str(self.grid[self.current[0], self.current[1]]) != '0' and str(self.grid[self.current[0], self.current[1]]) !='S' and str(self.grid[self.current[0], self.current[1]]) !='W':
             self.done = True
             if str(self.grid[self.current[0], self.current[1]]) == 'S':
                 self.reward += self.r
@@ -147,6 +170,9 @@ class GridWorld(gym.Env):
                     print('\033[1;32m' + str(grid[i, j]) + '\033[0m', end='\t')
                 elif grid[i, j] == 'S':
                     print('\033[1;34m' + str(grid[i, j]) + '\033[0m', end='\t')
+                elif grid[i, j] == '0' or grid[i, j] == 0:
+                    #print empty squares as nothing
+                    print(' ', end='\t')
                 else:
                     print(grid[i, j], end='\t')
             print()
@@ -191,6 +217,30 @@ def epsilon_greedy(Q, state, nA, epsilon = 0.2):
     else: 
         action = np.random.choice(np.arange(nA))
     return action
+def player_game(env):
+    '''
+    Let human play the game. Using the arrow key to move the agent.
+    '''
+    env.reset()
+    env.render()
+    while True:
+        action = input("Enter the action (w,a,s,d): ")
+        if action == 'w':
+            action = 0
+        elif action == 's':
+            action = 1
+        elif action == 'a':
+            action = 2
+        elif action == 'd':
+            action = 3
+        else:
+            print("Invalid action")
+            continue
+        _, reward, done, _,_ = env.step(action)
+        env.render()
+        if done:
+            print(f"Game over. Total reward: {reward}")
+            break
 def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.2):
     '''
     This function will generate Q from SARSA algorithm
@@ -228,53 +278,68 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.2):
             state = next_state
     return Q
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Lazy and lame gridworld')
+    #create colored text for title
+    x = """
+        \033[1;33m GridWorld\033[0m :
+        The lame and silly game
+        """
+    parser = argparse.ArgumentParser(description=x)
+    #make the mode: human, sarsa, and Q
+    parser.add_argument('mode', type=str, help='Mode of simulation: human, random, sarsa, q')
     parser.add_argument('-p', metavar='p', type=float, default=0.2,
-                        help='probability of moving in the desired direction')
-    parser.add_argument('--random', action='store_true', default=False, help='generate a random grid')
+                        help='probability of moving in the desired direction (Default is 0.2)')
     parser.add_argument('--gridfile', type=argparse.FileType('r'), default=None, help='load a grid from a file')
-    parser.add_argument('--r', type=float, default=-0.2, help='reward for each step')
-    parser.add_argument('--seed', type=int, default=2, help='random seed')
+    parser.add_argument('--r', type=float, default=-0.2, help='reward for each step (Default is -0.2)')
+    parser.add_argument('--seed', type=int, default=2, help='random seed (Default is 2)')
+    parser.add_argument('--size', type=int, default=5, help='size of the grid (Default is 5)')
+    parser.add_argument('-pW', metavar='pW', type=float, default=0.2, help='probability of a wall in a random grid (Default is 0.2)')
+    parser.add_argument('-prP', metavar='prP', type=float, default=0.1, help='probability of a positive reward in a random grid (Default is 0.1)')
+    parser.add_argument('-prN', metavar='prN', type=float, default=0.1, help='probability of a negative reward in a random grid (Default is 0.1)')
+    parser.add_argument('-pWh', metavar='pWh', type=float, default=0, help='probability of a wormhole in a random grid (Default is 0)')
     args = parser.parse_args()
     np.random.seed(args.seed)
-    env = GridWorld(args.p, args.r, args.gridfile)
-    env.reset()
-    env.render()
-    while not env.done:
-        action = np.random.randint(0, 4)
-        state, reward, done, _, _ = env.step(action)
-        #display the image with matplotlib, update the image if recalled
+    env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.prP, args.prN, args.pWh,args.size)
+    if args.mode == 'human':
+        env.reset()
         env.render()
-    print("-------------------")
-    print("Sarsa")
-    Q = sarsa(env, 10000)
-    env.reset()
-    env.render()
-    #play the game
-    action = epsilon_greedy(Q, state, 4, 0)
-    done = False
-    while not done:
-        next_state, reward, done, _, _ = env.step(action)
+        player_game(env)
+    elif args.mode == 'random':
+        env.reset()
         env.render()
-        next_action = epsilon_greedy(Q, next_state, 4, 0)
-        action = next_action
-    print("-------------------")
-    print("q-learning")
-    Q = q_learning(env, 10000)
-    env.reset()
-    env.render()
-    #play the game
-    action = epsilon_greedy(Q, state, 4, 0)
-    done = False
-    while not done:
-        next_state, reward, done, _, _ = env.step(action)
+        while not env.done:
+            action = np.random.randint(0, 4)
+            state, reward, done, _, _ = env.step(action)
+            env.render()
+    elif args.mode == 'sarsa':
+        Q = sarsa(env, 10000)
+        state = env.reset()
         env.render()
-        next_action = epsilon_greedy(Q, next_state, 4, 0)
-        action = next_action
-        
+        #play the game
+        action = epsilon_greedy(Q, state, 4, 0)
+        done = False
+        while not done:
+            next_state, reward, done, _, _ = env.step(action)
+            env.render()
+            next_action = epsilon_greedy(Q, next_state, 4, 0)
+            action = next_action
+    elif args.mode == 'q':
+        Q = q_learning(env, 10000)
+        state = env.reset()
+        env.render()
+        #play the game
+        action = epsilon_greedy(Q, state, 4, 0)
+        done = False
+        while not done:
+            next_state, reward, done, _, _ = env.step(action)
+            env.render()
+            next_action = epsilon_greedy(Q, next_state, 4, 0)
+            action = next_action
+    else:
+        print("Invalid mode")
     #print the policy as a heatmap
     #plt.imshow(policy, cmap='hot', interpolation='nearest')
     #plt.show()
     #now
+    
 
 
