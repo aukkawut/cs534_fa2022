@@ -335,7 +335,7 @@ if __name__ == '__main__':
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
     else:
-        print("Invalid mode")
+        raise Exception("Invalid mode provided.")
     #print the policy as a heatmap
     #plt.imshow(policy, cmap='hot', interpolation='nearest')
     #plt.show()
