@@ -163,9 +163,9 @@ class GridWorld(gym.Env):
             #self.current = self.move(self.current, (action + 2)%4)
         #if we hit wormhole, we go to the other wormhole
         #wormhole is represented by a pair of non-numeric character which is not X, A, S
-        if str(self.grid[self.current[0], self.current[1]]).isalpha() and self.grid[self.current[0], self.current[1]] != 'X' and self.grid[self.current[0], self.current[1]] != 'A' and self.grid[self.current[0], self.current[1]] != 'S':
+        if str(self.grid[self.current[0], self.current[1]]).isalpha() and self.grid[self.current[0], self.current[1]] != 'X' and self.grid[self.current[0], self.current[1]] != 'A' and self.grid[self.current[0], self.current[1]] != 'S' and not (self.grid[self.current[0], self.current[1]].lstrip("-").isdigit()):
             self.current = np.argwhere(self.grid == self.grid[self.current[0], self.current[1]])[1]
-        if str(self.grid[self.current[0], self.current[1]]) != '0' and str(self.grid[self.current[0], self.current[1]]) !='S' and str(self.grid[self.current[0], self.current[1]]).isnumeric():
+        if str(self.grid[self.current[0], self.current[1]]) != '0' and str(self.grid[self.current[0], self.current[1]]) !='S' and str(self.grid[self.current[0], self.current[1]]).lstrip("-").isdigit():
             self.done = True
             if str(self.grid[self.current[0], self.current[1]]) == 'S':
                 self.reward += self.r
@@ -322,7 +322,7 @@ def printPolicy(Q, grid_size, grid):
     #print the grid with empty squares replace with our policy
     for i in range(grid_size[0]):
         for j in range(grid_size[1]):
-            if not str(grid[i, j]).lstrip("-").isnumeric():
+            if not str(grid[i, j]).lstrip("-").isdigit():
                 #color X with red
                 if grid[i,j] == 'X':
                     print('\033[31m' + grid[i, j] + '\033[0m', end='\t')
