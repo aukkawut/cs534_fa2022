@@ -338,7 +338,7 @@ def printPolicy(Q, grid_size, grid):
             elif policy[i, j] == 3:
                 print('→', end='\t')
             else:
-                if grid[i, j] != '0':
+                if str(grid[i, j]) != '0':
                     #print the reward in green
                     #print(f'{grid[i, j]}', end='\t')
                     print('\033[32m' + str(grid[i, j]) + '\033[0m', end='\t')
