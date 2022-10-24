@@ -271,12 +271,14 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
     This function will generate Q from SARSA algorithm
     '''
     Q = defaultdict(lambda: np.zeros(4))
+    total_rewards = []
     for t in range(n_episodes):
        # epsilon = 1/(t+1)
         epsilon = max(epsilon - ((epsilon - 0.01)/n_episodes),0.01)
         state = env.reset()
         action = epsilon_greedy(Q, state, 4, epsilon)
         done = False
+        reward_e = 0
         while not done:
             next_state, reward, done, _, _ = env.step(action)
             next_action = epsilon_greedy(Q, next_state, 4, epsilon)
@@ -285,16 +287,20 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
             Q[state][action] += alpha * td_error
             state = next_state
             action = next_action
-    return Q
+            reward_e += reward
+        total_rewards.append(reward_e)
+    return Q, np.array(total_rewards)
 def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
     '''
     This function will generate Q from Q-learning algorithm
     '''
     Q = defaultdict(lambda: np.zeros(4))
+    total_reward = []
     for t in range(n_episodes):
         epsilon = max(epsilon - ((epsilon - 0.01)/n_episodes),0.01)
         state = env.reset()
         done = False
+        reward_e = 0
         while not done:
             action = epsilon_greedy(Q, state, 4, epsilon)
             next_state, reward, done, _, _ = env.step(action)
@@ -302,7 +308,9 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
             td_error = td_target - Q[state][action]
             Q[state][action] += alpha * td_error
             state = next_state
-    return Q
+            reward_e += reward
+        total_reward.append(reward_e)
+    return Q, np.array(total_reward)
 def printPolicy(Q, grid_size, grid):
     '''
     This function will print the action that maximize Q as the arrow
@@ -367,6 +375,7 @@ if __name__ == '__main__':
     parser.add_argument('-prN', metavar='prN', type=float, default=0.1, help='probability of a negative reward in a random grid (Default is 0.1)')
     parser.add_argument('-nWh', metavar='nWh', type=int, default=0, help='number of a wormhole in a random grid (Default is 0)')
     parser.add_argument('-nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
+    parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
     args = parser.parse_args()
     np.random.seed(args.seed)
     env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.prP, args.prN, args.nWh,args.size)
@@ -382,7 +391,7 @@ if __name__ == '__main__':
             state, reward, done, _, _ = env.step(action)
             env.render()
     elif args.mode == 'sarsa':
-        Q = sarsa(env, args.nEp)
+        Q, r = sarsa(env, args.nEp)
         state = env.reset()
         env.render()
         #play the game
@@ -395,8 +404,19 @@ if __name__ == '__main__':
             action = next_action
         #for each point in the grid, print the q value
         printPolicy(Q, env.gridsize(), env.grid)
+        print('Average training reward: ', np.mean(r))
+        r = []
+        for i in range(args.nEpT):
+            state = env.reset()
+            done = False
+            while not done:
+                action = epsilon_greedy(Q, state, 4, 0)
+                next_state, reward, done, _, _ = env.step(action)
+                state = next_state
+            r.append(reward)
+        print('Average testing reward: ', np.mean(r))
     elif args.mode == 'q':
-        Q = q_learning(env, args.nEp)
+        Q,r = q_learning(env, args.nEp)
         state = env.reset()
         env.render()
         #play the game
@@ -408,6 +428,18 @@ if __name__ == '__main__':
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
         printPolicy(Q, env.gridsize(), env.grid)
+        print('Average training reward: ', np.mean(r))
+        #testing: run the game for nEpT episodes and print the average reward
+        r = []
+        for i in range(args.nEpT):
+            state = env.reset()
+            done = False
+            while not done:
+                action = epsilon_greedy(Q, state, 4, 0)
+                next_state, reward, done, _, _ = env.step(action)
+                state = next_state
+            r.append(reward)
+        print('Average testing reward: ', np.mean(r))
     else:
         raise Exception("Invalid mode provided.")
     #print the policy as a heatmap
