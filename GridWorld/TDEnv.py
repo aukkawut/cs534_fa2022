@@ -376,9 +376,10 @@ if __name__ == '__main__':
     parser.add_argument('-nWh', metavar='nWh', type=int, default=0, help='number of a wormhole in a random grid (Default is 0)')
     parser.add_argument('-nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
     parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
+    parser.add_argument('-maxT', metavar='maxT', type=int, default=100, help='maximum number of steps in an episode (Default is 100)')
     args = parser.parse_args()
     np.random.seed(args.seed)
-    env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.prP, args.prN, args.nWh,args.size)
+    env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.prP, args.prN, args.nWh,args.size, args.maxT)
     if args.mode == 'human':
         env.reset()
         env.render()
