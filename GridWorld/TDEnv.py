@@ -128,7 +128,7 @@ class GridWorld(gym.Env):
         #if done, you can't interact with the environment
         self.action = action
         if self.done:
-            return self.current[0] * self.grid.shape[1] + self.current[1], self.reward, self.done, self.done,{}
+            return (self.current[0],self.current[1]), self.reward, self.done, self.done,{}
         if np.random.random() < self.p:
             self.envAction = "Normal"
             self.current = self.move(self.current, action)
@@ -153,7 +153,7 @@ class GridWorld(gym.Env):
                 self.reward += (int(self.grid[self.current[0], self.current[1]]) + self.r)
             except:
                 self.reward += self.r
-        return self.current[0] * self.grid.shape[1] + self.current[1], self.reward, self.done, self.done,{}
+        return (self.current[0], self.current[1]), self.reward, self.done, self.done,{}
     def render(self) -> None:
         '''
         This function renders the gridworld.
@@ -207,6 +207,8 @@ class GridWorld(gym.Env):
             if current[1] < self.grid.shape[1] - 1 and self.grid[current[0], current[1] + 1] != 'X':
                 return np.array([current[0], current[1] + 1])
         return current
+    def gridsize(self) -> tuple:
+        return (self.grid.shape[0], self.grid.shape[1])
 
 def epsilon_greedy(Q, state, nA, epsilon = 0.2):
     '''
@@ -241,13 +243,14 @@ def player_game(env):
         if done:
             print(f"Game over. Total reward: {reward}")
             break
-def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.2):
+def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
     '''
     This function will generate Q from SARSA algorithm
     '''
     Q = defaultdict(lambda: np.zeros(4))
     for t in range(n_episodes):
-        epsilon = 1/(t+1)
+       # epsilon = 1/(t+1)
+        epsilon = max(epsilon - ((epsilon - 0.01)/n_episodes),0.01)
         state = env.reset()
         action = epsilon_greedy(Q, state, 4, epsilon)
         done = False
@@ -260,13 +263,13 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.2):
             state = next_state
             action = next_action
     return Q
-def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.2):
+def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
     '''
     This function will generate Q from Q-learning algorithm
     '''
     Q = defaultdict(lambda: np.zeros(4))
     for t in range(n_episodes):
-        epsilon = 1/(t+1)
+        epsilon = max(epsilon - ((epsilon - 0.01)/n_episodes),0.01)
         state = env.reset()
         done = False
         while not done:
@@ -277,6 +280,28 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.2):
             Q[state][action] += alpha * td_error
             state = next_state
     return Q
+def printPolicy(Q, grid_size):
+    '''
+    This function will print the action that maximize Q as the arrow
+    '''
+    raise NotImplementedError
+    policy = np.zeros(grid_size)
+    for state in Q:
+        policy[state] = np.argmax(Q[state])
+    for i in range(policy.shape[0]):
+        for j in range(policy.shape[1]):
+            if policy[i, j] == 0:
+                print('↑', end='\t')
+            elif policy[i, j] == 1:
+                print('↓', end='\t')
+            elif policy[i, j] == 2:
+                print('←', end='\t')
+            elif policy[i, j] == 3:
+                print('→', end='\t')
+            else:
+                print(' ', end='\t')
+        print()
+
 if __name__ == '__main__':
     #create colored text for title
     x = """
@@ -322,6 +347,8 @@ if __name__ == '__main__':
             env.render()
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
+        #for each point in the grid, print the q value
+        #printPolicy(Q, env.gridsize())
     elif args.mode == 'q':
         Q = q_learning(env, 10000)
         state = env.reset()
@@ -334,6 +361,7 @@ if __name__ == '__main__':
             env.render()
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
+        #printPolicy(Q, (args.size,args.size))
     else:
         raise Exception("Invalid mode provided.")
     #print the policy as a heatmap
