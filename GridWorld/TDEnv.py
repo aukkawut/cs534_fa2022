@@ -366,6 +366,7 @@ if __name__ == '__main__':
     parser.add_argument('-prP', metavar='prP', type=float, default=0.1, help='probability of a positive reward in a random grid (Default is 0.1)')
     parser.add_argument('-prN', metavar='prN', type=float, default=0.1, help='probability of a negative reward in a random grid (Default is 0.1)')
     parser.add_argument('-nWh', metavar='nWh', type=int, default=0, help='number of a wormhole in a random grid (Default is 0)')
+    parser.add_argument('-nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
     args = parser.parse_args()
     np.random.seed(args.seed)
     env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.prP, args.prN, args.nWh,args.size)
@@ -381,7 +382,7 @@ if __name__ == '__main__':
             state, reward, done, _, _ = env.step(action)
             env.render()
     elif args.mode == 'sarsa':
-        Q = sarsa(env, 10000)
+        Q = sarsa(env, args.nEp)
         state = env.reset()
         env.render()
         #play the game
@@ -395,7 +396,7 @@ if __name__ == '__main__':
         #for each point in the grid, print the q value
         printPolicy(Q, env.gridsize(), env.grid)
     elif args.mode == 'q':
-        Q = q_learning(env, 10000)
+        Q = q_learning(env, args.nEp)
         state = env.reset()
         env.render()
         #play the game
