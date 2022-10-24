@@ -9,14 +9,14 @@ def is_valid_file(parser, arg):
         parser.error("The file %s does not exist!" % arg)
     else:
         return open(arg, 'r')  # return an open file handle
-def generate_random_world(size,pw = 0.1, prp = 0.05, prn = 0.05,pwh = 0.1):
+def generate_random_world(size,pw = 0.1, prp = 0.05, prn = 0.05,pwh = 0):
     '''
     This function generates a random gridworld.
     size: size of the gridworld
     pw: probability of a wall in the gridworld
     prp: probability of a positive reward in the gridworld
     prn: probability of a negative reward in the gridworld
-    pwh: probability of a wormhole in the gridworld
+    pwh: number of a wormhole in the gridworld
     '''
     grid = np.zeros((size+1, size+1), dtype='object')
     #make sure that outside the grid is a wall
@@ -33,18 +33,27 @@ def generate_random_world(size,pw = 0.1, prp = 0.05, prn = 0.05,pwh = 0.1):
                     grid[i, j] = str(np.random.randint(1, 9))
                 elif np.random.random() < prn:
                     grid[i, j] = str(-np.random.randint(1, 9))
-                elif np.random.random() < pwh:
-                    #create a pair of wormholes
-                    grid[i, j] = 'W'
-                    while True:
-                        x = np.random.randint(1, size)
-                        y = np.random.randint(1, size)
-                        if grid[x, y] == 0 or grid[x, y] == '0':
-                            grid[x, y] = 'W'
-                            break
                 else:
                     grid[i, j] = '0'
     grid[size-1, 1] = 'S'
+    #place wormhole
+    for i in range(pwh):
+        while True:
+            x = np.random.randint(1, size)
+            y = np.random.randint(1, size)
+            if grid[x,y] == '0':
+                #random alphabet that is not X,A,S
+                random_char = chr(np.random.randint(65, 91))
+                if random_char != 'X' and random_char != 'A' and random_char != 'S':
+                    grid[x,y] = random_char
+                    #pick the out point of the wormhole
+                    while True:
+                        x = np.random.randint(1, size)
+                        y = np.random.randint(1, size)
+                        if grid[x,y] == '0':
+                            grid[x,y] = random_char
+                            break                
+                break
 
     return grid
 class GridWorld(gym.Env):
@@ -153,9 +162,10 @@ class GridWorld(gym.Env):
                 self.current = self.move(self.current, 2)
             #self.current = self.move(self.current, (action + 2)%4)
         #if we hit wormhole, we go to the other wormhole
-        if self.grid[self.current[0], self.current[1]] == 'W':
-            self.current = np.argwhere(self.grid == 'W')[0] if self.current[0] == np.argwhere(self.grid == 'W')[1][0] else np.argwhere(self.grid == 'W')[1]
-        if str(self.grid[self.current[0], self.current[1]]) != '0' and str(self.grid[self.current[0], self.current[1]]) !='S' and str(self.grid[self.current[0], self.current[1]]) !='W':
+        #wormhole is represented by a pair of non-numeric character which is not X, A, S
+        if str(self.grid[self.current[0], self.current[1]]).isalpha() and self.grid[self.current[0], self.current[1]] != 'X' and self.grid[self.current[0], self.current[1]] != 'A' and self.grid[self.current[0], self.current[1]] != 'S':
+            self.current = np.argwhere(self.grid == self.grid[self.current[0], self.current[1]])[1]
+        if str(self.grid[self.current[0], self.current[1]]) != '0' and str(self.grid[self.current[0], self.current[1]]) !='S' and str(self.grid[self.current[0], self.current[1]]).isnumeric():
             self.done = True
             if str(self.grid[self.current[0], self.current[1]]) == 'S':
                 self.reward += self.r
@@ -312,9 +322,13 @@ def printPolicy(Q, grid_size, grid):
     #print the grid with empty squares replace with our policy
     for i in range(grid_size[0]):
         for j in range(grid_size[1]):
-            if grid[i, j] == 'X':
+            if not str(grid[i, j]).lstrip("-").isnumeric():
                 #color X with red
-                print('\033[31m' + grid[i, j] + '\033[0m', end='\t')
+                if grid[i,j] == 'X':
+                    print('\033[31m' + grid[i, j] + '\033[0m', end='\t')
+                else:
+                    #blue
+                    print('\033[34m' + grid[i, j] + '\033[0m', end='\t')
             elif policy[i, j] == 0:
                 print('↑', end='\t')
             elif policy[i, j] == 1:
@@ -351,10 +365,10 @@ if __name__ == '__main__':
     parser.add_argument('-pW', metavar='pW', type=float, default=0.2, help='probability of a wall in a random grid (Default is 0.2)')
     parser.add_argument('-prP', metavar='prP', type=float, default=0.1, help='probability of a positive reward in a random grid (Default is 0.1)')
     parser.add_argument('-prN', metavar='prN', type=float, default=0.1, help='probability of a negative reward in a random grid (Default is 0.1)')
-    parser.add_argument('-pWh', metavar='pWh', type=float, default=0, help='probability of a wormhole in a random grid (Default is 0)')
+    parser.add_argument('-nWh', metavar='nWh', type=int, default=0, help='number of a wormhole in a random grid (Default is 0)')
     args = parser.parse_args()
     np.random.seed(args.seed)
-    env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.prP, args.prN, args.pWh,args.size)
+    env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.prP, args.prN, args.nWh,args.size)
     if args.mode == 'human':
         env.reset()
         env.render()
