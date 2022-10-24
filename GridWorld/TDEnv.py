@@ -143,7 +143,15 @@ class GridWorld(gym.Env):
             self.current = self.move(self.current, action)
         else:
             self.envAction = "Backward"
-            self.current = self.move(self.current, (action + 2)%4)
+            if action == 0:
+                self.current = self.move(self.current, 1)
+            elif action == 1:
+                self.current = self.move(self.current, 0)
+            elif action == 2:
+                self.current = self.move(self.current, 3)
+            elif action == 3:
+                self.current = self.move(self.current, 2)
+            #self.current = self.move(self.current, (action + 2)%4)
         #if we hit wormhole, we go to the other wormhole
         if self.grid[self.current[0], self.current[1]] == 'W':
             self.current = np.argwhere(self.grid == 'W')[0] if self.current[0] == np.argwhere(self.grid == 'W')[1][0] else np.argwhere(self.grid == 'W')[1]
@@ -371,7 +379,7 @@ if __name__ == '__main__':
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
         #for each point in the grid, print the q value
-        #printPolicy(Q, env.gridsize())
+        printPolicy(Q, env.gridsize(), env.grid)
     elif args.mode == 'q':
         Q = q_learning(env, 10000)
         state = env.reset()
