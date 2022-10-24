@@ -67,7 +67,7 @@ class GridWorld(gym.Env):
     The agent will get the reward for the square it is in. However, if it moves two steps
     the reward will be the tile it ends up in.
     '''
-    def __init__(self,p,r,gridFile,pW,prP,prN,pWh,size) -> None:
+    def __init__(self,p,r,gridFile,pW,prP,prN,pWh,size,maxTimestep = 50) -> None:
         self.grid = []
         self.actions = ['up', 'down', 'left', 'right']
         self.action_space = gym.spaces.Discrete(len(self.actions))
@@ -86,6 +86,8 @@ class GridWorld(gym.Env):
         self.size = size
         self.r = r
         self.read_grid(gridFile)
+        self.timestep = 0
+        self.maxTimestep = maxTimestep
         self.reset()
         
     def read_grid(self,gridfile) -> None:
@@ -113,6 +115,7 @@ class GridWorld(gym.Env):
         self.done = False
         self.action = None
         self.envAction = None
+        self.timestep = 0
         return self.current[0] * self.grid.shape[1] + self.current[1]
     def step(self, action: int) -> tuple:
         '''
@@ -126,8 +129,10 @@ class GridWorld(gym.Env):
         -  The agent has the probability (1-p)/2 to move one step in the backward direction.
         '''
         #if done, you can't interact with the environment
+        self.timestep += 1
         self.action = action
-        if self.done:
+        if self.done or self.timestep > self.maxTimestep:
+            self.done = True
             return (self.current[0],self.current[1]), self.reward, self.done, self.done,{}
         if np.random.random() < self.p:
             self.envAction = "Normal"
@@ -280,17 +285,29 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
             Q[state][action] += alpha * td_error
             state = next_state
     return Q
-def printPolicy(Q, grid_size):
+def printPolicy(Q, grid_size, grid):
     '''
     This function will print the action that maximize Q as the arrow
     '''
-    raise NotImplementedError
-    policy = np.zeros(grid_size)
-    for state in Q:
-        policy[state] = np.argmax(Q[state])
-    for i in range(policy.shape[0]):
-        for j in range(policy.shape[1]):
-            if policy[i, j] == 0:
+    #raise NotImplementedError
+    policy = -1 * np.ones(grid_size)
+    for i in range(grid_size[0]):
+        for j in range(grid_size[1]):
+            try:
+                policy[i,j] = np.argmax(Q[(i,j)])
+                if np.sum(Q[(i,j)]) == 0:
+                    policy[i,j] = -1
+            except:
+                pass
+    #mask the policy with the grid
+    policy = np.ma.masked_where(grid == 'X', policy)
+    #print the grid with empty squares replace with our policy
+    for i in range(grid_size[0]):
+        for j in range(grid_size[1]):
+            if grid[i, j] == 'X':
+                #color X with red
+                print('\033[31m' + grid[i, j] + '\033[0m', end='\t')
+            elif policy[i, j] == 0:
                 print('↑', end='\t')
             elif policy[i, j] == 1:
                 print('↓', end='\t')
@@ -299,8 +316,14 @@ def printPolicy(Q, grid_size):
             elif policy[i, j] == 3:
                 print('→', end='\t')
             else:
-                print(' ', end='\t')
+                if grid[i, j] != '0':
+                    #print the reward in green
+                    #print(f'{grid[i, j]}', end='\t')
+                    print('\033[32m' + str(grid[i, j]) + '\033[0m', end='\t')
+                else:
+                    print(' ', end='\t')
         print()
+
 
 if __name__ == '__main__':
     #create colored text for title
@@ -361,7 +384,7 @@ if __name__ == '__main__':
             env.render()
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
-        #printPolicy(Q, (args.size,args.size))
+        printPolicy(Q, env.gridsize(), env.grid)
     else:
         raise Exception("Invalid mode provided.")
     #print the policy as a heatmap
