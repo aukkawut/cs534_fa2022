@@ -2,7 +2,7 @@ import numpy as np
 import gym
 import argparse
 from collections import defaultdict
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import os
 def is_valid_file(parser, arg):
     if not os.path.exists(arg):
