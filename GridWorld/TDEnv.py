@@ -2,7 +2,7 @@ import numpy as np
 import gym
 import argparse
 from collections import defaultdict
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import os
 def is_valid_file(parser, arg):
     if not os.path.exists(arg):
@@ -406,6 +406,12 @@ if __name__ == '__main__':
         #for each point in the grid, print the q value
         printPolicy(Q, env.gridsize(), env.grid)
         print('Average training reward: ', np.mean(r))
+        #plot training reward
+        plt.plot(r)
+        plt.xlabel('Episode')
+        plt.ylabel('Reward')
+        plt.title('Training Reward')
+        plt.show()
         r = []
         for i in range(args.nEpT):
             state = env.reset()
@@ -430,6 +436,11 @@ if __name__ == '__main__':
             action = next_action
         printPolicy(Q, env.gridsize(), env.grid)
         print('Average training reward: ', np.mean(r))
+        plt.plot(r)
+        plt.xlabel('Episode')
+        plt.ylabel('Reward')
+        plt.title('Training Reward')
+        plt.show()
         #testing: run the game for nEpT episodes and print the average reward
         r = []
         for i in range(args.nEpT):
