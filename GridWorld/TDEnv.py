@@ -111,6 +111,7 @@ class GridWorld(gym.Env):
         self.pWh = pWh
         self.size = size
         self.r = r
+        self.truncated = False
         self.read_grid(gridFile)
         self.timestep = 0
         self.maxTimestep = maxTimestep
@@ -142,6 +143,7 @@ class GridWorld(gym.Env):
         self.done = False
         self.action = None
         self.envAction = None
+        self.truncated = False
         self.timestep = 0
         return (self.current[0],self.current[1])
     def step(self, action: int) -> tuple:
@@ -156,11 +158,15 @@ class GridWorld(gym.Env):
         -  The agent has the probability (1-p)/2 to move one step in the backward direction.
         '''
         #if done, you can't interact with the environment
+        #if self.truncated:
+        #    raise Exception('The episode is done. Please reset the environment.')
         self.timestep += 1
         self.action = action
         if self.done or self.timestep > self.maxTimestep:
-            self.done = True
-            return (self.current[0],self.current[1]), self.reward, self.done, self.done,{}
+            if self.timestep > self.maxTimestep:
+                self.truncated = True
+                self.done = False
+            return (self.current[0],self.current[1]), self.reward, self.done, self.truncated,{}
         if np.random.random() < self.p:
             self.envAction = "Normal"
             self.current = self.move(self.current, action)
@@ -194,7 +200,7 @@ class GridWorld(gym.Env):
                 self.reward += (int(self.grid[self.current[0], self.current[1]]) + self.r)
             except:
                 self.reward += self.r
-        return (self.current[0], self.current[1]), self.reward, self.done, self.done,{}
+        return (self.current[0], self.current[1]), self.reward, self.done, self.truncated,{}
     def render(self) -> None:
         '''
         This function renders the gridworld.
@@ -292,6 +298,7 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,de
     SP = np.zeros(env.gridsize())
     SPT = np.zeros(env.gridsize())
     total_rewards = []
+    denom = 0
     for t in range(n_episodes):
        # epsilon = 1/(t+1)
         if decay:
@@ -300,11 +307,14 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,de
         SP[state] += 1
         action = epsilon_greedy(Q, state, 4, epsilon)
         done = False
+        truncated = False
         reward_e = 0
         eplen = 0
         while not done:
+            if truncated:
+                break
             eplen += 1
-            next_state, reward, done, _, _ = env.step(action)
+            next_state, reward, done, truncated, _ = env.step(action)
             next_action = epsilon_greedy(Q, next_state, 4, epsilon)
             td_target = reward + gamma * Q[next_state][next_action]
             td_error = td_target - Q[state][action]
@@ -313,11 +323,13 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,de
             SP[state] += 1
             action = next_action
             reward_e += reward
+        if done:
+            denom +=1
         total_rewards.append(reward_e)
         SPT = SPT + SP/np.sum(SP)
         SP = np.zeros(env.gridsize())
     SPT = SPT/n_episodes
-    return Q, np.array(total_rewards), SPT
+    return Q, np.array(total_rewards), SPT, np.sum(total_rewards)/denom
 def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.01,decay = True):
     '''
     This function will generate Q from Q-learning algorithm
@@ -326,6 +338,7 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0
     total_reward = []
     SP = np.zeros(env.gridsize())
     SPT = np.zeros(env.gridsize())
+    denom = 0
     for t in range(n_episodes):
         if decay:
             epsilon = max(epsilon - ((epsilon - end_epsilon)/(0.5*n_episodes)),end_epsilon)
@@ -335,10 +348,13 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0
         #print(state)
         SP[state] += 1
         eplen = 0
+        truncated = False
         while not done:
+            if truncated:
+                break
             eplen +=1
             action = epsilon_greedy(Q, state, 4, epsilon)
-            next_state, reward, done, _, _ = env.step(action)
+            next_state, reward, done, truncated, _ = env.step(action)
             td_target = reward + gamma * np.max(Q[next_state])
             td_error = td_target - Q[state][action]
             Q[state][action] += alpha * td_error
@@ -346,13 +362,15 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0
             #print(state)
             SP[state] += 1
             reward_e += reward
+        if done:
+            denom +=1
         SP = SP/np.sum(SP)
         total_reward.append(reward_e)
         SPT = SPT + SP
         SP = np.zeros(env.gridsize())
     SPT = SPT/n_episodes
     #return Q, np.array(total_rewards), SPT
-    return Q, np.array(total_reward), SPT
+    return Q, np.array(total_reward), SPT, np.sum(total_reward)/denom
 def printPolicy(Q, grid_size, grid):
     '''
     This function will print the action that maximize Q as the arrow
@@ -479,32 +497,34 @@ if __name__ == '__main__':
     elif args.mode == 'random':
         env.reset()
         env.render()
-        while not env.done:
+        while not env.done or env.truncated:
             action = np.random.randint(0, 4)
-            state, reward, done, _, _ = env.step(action)
+            state, reward, done, truncated, _ = env.step(action)
             env.render()
     elif args.mode == 'sarsa':
-        Q, r,SP = sarsa(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
+        Q, r,SP,mr = sarsa(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
         state = env.reset()
         env.render()
         #play the game
         action = epsilon_greedy(Q, state, 4, 0)
         done = False
         while not done:
-            next_state, reward, done, _, _ = env.step(action)
+            if truncated:
+                break
+            next_state, reward, done, truncated, _ = env.step(action)
             env.render()
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
         #for each point in the grid, print the q value
         printPolicy(Q, env.gridsize(), env.grid)
-        print('Average training reward: ', np.mean(r))
+        print('Average training reward: ', mr)
         Heatmap(SP,env.grid)
         #plot average 10 training reward
         #set figure size
         if not args.plotext:
             plt.figure(figsize=(10, 5))
         else:
-            plt.plotsize(80, 20)
+            plt.plotsize(100, 20)
         plt.plot(np.convolve(r, np.ones((30,))/30, mode='valid'))
         plt.title('Average 30 training reward of Sarsa')
         plt.xlabel('Episode')
@@ -514,35 +534,44 @@ if __name__ == '__main__':
         #plt.figtext(0.5, 0.01, 'p = ' + str(args.p) + ', r = ' + str(args.r) + ', alpha = ' + str(args.alpha) + ', gamma = ' + str(args.gamma) + ', epsilon = ' + str(args.start_eps) + ', end_epsilon = ' + str(args.end_eps), wrap=True, horizontalalignment='center', fontsize=12)
         plt.show()
         r = []
+        denom = 0
         for i in range(args.nEpT):
             state = env.reset()
             done = False
+            truncated = False
             while not done:
+                if truncated:
+                    break
                 action = epsilon_greedy(Q, state, 4, 0)
-                next_state, reward, done, _, _ = env.step(action)
+                next_state, reward, done, truncated, _ = env.step(action)
                 state = next_state
+            if done:
+                denom +=1
             r.append(reward)
-        print('Average testing reward: ', np.mean(r))
+        print('Average testing reward: ', np.sum(r)/denom)
     elif args.mode == 'q':
-        Q,r,SP = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
+        Q,r,SP,mr = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
         state = env.reset()
         env.render()
         #play the game
         action = epsilon_greedy(Q, state, 4, 0)
         done = False
+        truncated = False
         while not done:
-            next_state, reward, done, _, _ = env.step(action)
+            if truncated:
+                break
+            next_state, reward, done, truncated, _ = env.step(action)
             env.render()
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
         printPolicy(Q, env.gridsize(), env.grid)
         Heatmap(SP,env.grid)
-        print('Average training reward: ', np.mean(r))
+        print('Average training reward: ', mr)
         #plot average 10 training reward
         if not args.plotext:
             plt.figure(figsize=(10, 5))
         else:
-            plt.plotsize(80, 20)
+            plt.plotsize(100, 20)
         #plt.figure(figsize=(10, 5))
         plt.plot(np.convolve(r, np.ones((30,))/30, mode='valid'))
         plt.title('Average 30 training reward of Q-learning')
@@ -552,15 +581,21 @@ if __name__ == '__main__':
         plt.show()
         #testing: run the game for nEpT episodes and print the average reward
         r = []
+        denom = 0
         for i in range(args.nEpT):
             state = env.reset()
             done = False
+            truncated = False
             while not done:
+                if truncated:
+                    break
                 action = epsilon_greedy(Q, state, 4, 0)
-                next_state, reward, done, _, _ = env.step(action)
+                next_state, reward, done, truncated, _ = env.step(action)
                 state = next_state
+            if done:
+                denom += 1
             r.append(reward)
-        print('Average testing reward: ', np.mean(r))
+        print('Average testing reward: ', np.sum(r)/denom)
     else:
         raise Exception("Invalid mode provided.")
 #python TDEnv.py --size 10 --seed 213215 --r -0.012 -alpha 0.6 -gamma 0.9 -nrP 1 -nrN 1 -p 1 -pW 0.2 -start_eps 1 -end_eps 0 -nEp 1000 -nWh 1 -epsDecay True q
