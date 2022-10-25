@@ -509,7 +509,7 @@ if __name__ == '__main__':
     parser.add_argument('-alpha', metavar='alpha', type=float, default=0.5, help='learning rate (Default is 0.5)')
     parser.add_argument('-gamma', metavar='gamma', type=float, default=0.9, help='discount factor (Default is 0.9)')
     parser.add_argument('--nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
-    parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
+    #parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
     parser.add_argument('-epsDecay', metavar='epsDecay', type=bool, default=True, help='epsilon decay as [(eps - end_eps)/0.5n] (Default is True)')
     #parser.add_argument('-plotext', metavar='plotext', type=bool, default=False, help='plot the graph with plotext (Default is False, will use matplotlib)')
     
@@ -573,6 +573,7 @@ if __name__ == '__main__':
         #plt.figtext(0.5, 0.01, 'p = ' + str(args.p) + ', r = ' + str(args.r) + ', alpha = ' + str(args.alpha) + ', gamma = ' + str(args.gamma) + ', epsilon = ' + str(args.start_eps) + ', end_epsilon = ' + str(args.end_eps), wrap=True, horizontalalignment='center', fontsize=12)
         plt.show()
         '''
+        '''
         r = []
         denom = 0
         for i in range(args.nEpT):
@@ -594,6 +595,7 @@ if __name__ == '__main__':
             print(f'Average testing reward: {-np.inf} ({np.mean(r)})')
         else:
             print('Average testing reward: ', np.sum(r)/denom)
+        '''
     elif args.mode == 'q':
         Q,r,SP,mr = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
         '''
@@ -629,6 +631,7 @@ if __name__ == '__main__':
         plt.show()
         #testing: run the game for nEpT episodes and print the average reward
         '''
+        '''
         r = []
         denom = 0
         for i in range(args.nEpT):
@@ -650,7 +653,7 @@ if __name__ == '__main__':
             #denom = np.finfo(float).eps
         else:
             print('Average testing reward: ', np.sum(r)/denom)
-        
+        '''
     else:
         raise Exception("Invalid mode provided.")
 #python TDEnv.py --size 10 --seed 213215 --r -0.012 -alpha 0.6 -gamma 0.9 -nrP 1 -nrN 1 -p 1 -pW 0.2 -start_eps 1 -end_eps 0 -nEp 1000 -nWh 1 -epsDecay True q
