@@ -357,10 +357,6 @@ def printPolicy(Q, grid_size, grid):
 
 if __name__ == '__main__':
     #create colored text for title
-    print('\033[1m' + '\033[4m' + 'GridWorld' + '\033[0m \n')
-    print('The quick way to test this code with your grid file is to run the following command:\n')
-    print('python3 TDEnv.py \033[3m<human|random|q|sarsa>\033[0m --gridfile \033[3m<gridfile>\033[0m\n')
-    print('for more long descriptive help (including the '+'\033[3m' + 'random world generator' + '\033[0m'+', run python3 gridworld.py -h\n')
     x = """
         \033[1;33m GridWorld\033[0m :
         The lame and silly game
