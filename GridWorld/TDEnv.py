@@ -508,6 +508,7 @@ if __name__ == '__main__':
         #play the game
         action = epsilon_greedy(Q, state, 4, 0)
         done = False
+        truncated = False
         while not done:
             if truncated:
                 break
