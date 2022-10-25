@@ -12,6 +12,9 @@ Start from the helping function
 ```
 python TDEnv.py --help
 ```
+### Environment Customization
+You can set the customized reward with tag `--r <your_reward>`. Note that you need negative sign for penalty. You can also customize the probabilistic aspect of moving by using tag `-p`. The larger the `p`, the more likely the agent will moves as intended.
+
 ### Testing
 If you have your grid file (tab delimited text file) where 0 means empty, [-9,9] \ {0} means reward, S means start, and X means wall. Then, you can run 
 ```
