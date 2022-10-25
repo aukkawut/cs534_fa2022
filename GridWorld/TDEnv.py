@@ -3,15 +3,17 @@ import gym
 import argparse
 from collections import defaultdict
 import os
+from pathlib import Path
+#import sys
 import warnings
 os.system("")
 #import matplotlib.pyplot as plt
 import os
 def is_valid_file(parser, arg):
-    if not os.path.exists(arg):
+    if Path(arg).is_file():
         parser.error("The file %s does not exist!" % arg)
     else:
-        return open(arg, 'r')  # return an open file handle
+        return open(Path(arg).resolve(), 'r')  # return an open file handle
 def generate_random_world(size,pw = 0.1, prp = 1, prn = 1,pwh = 0):
     '''
     This function generates a random gridworld.
