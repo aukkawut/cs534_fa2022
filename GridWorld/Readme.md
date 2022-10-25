@@ -5,7 +5,7 @@ Yes, this is RL stuff. Ripoff frozen lake
 ## How to run this?
 
 ### Requirements
-Make sure that you have `gym`, `matplotlib` and `numpy` installed.
+Make sure that you have `gym >= 0.25.2`, `matplotlib` and `numpy` installed.
 
 ### Getting Start
 Start from the helping function
