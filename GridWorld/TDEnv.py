@@ -9,13 +9,13 @@ def is_valid_file(parser, arg):
         parser.error("The file %s does not exist!" % arg)
     else:
         return open(arg, 'r')  # return an open file handle
-def generate_random_world(size,pw = 0.1, prp = 0.05, prn = 0.05,pwh = 0):
+def generate_random_world(size,pw = 0.1, prp = 1, prn = 1,pwh = 0):
     '''
     This function generates a random gridworld.
     size: size of the gridworld
     pw: probability of a wall in the gridworld
-    prp: probability of a positive reward in the gridworld
-    prn: probability of a negative reward in the gridworld
+    prp: number of a positive reward in the gridworld
+    prn: number of a negative reward in the gridworld
     pwh: number of a wormhole in the gridworld
     '''
     grid = np.zeros((size+1, size+1), dtype='object')
@@ -29,10 +29,6 @@ def generate_random_world(size,pw = 0.1, prp = 0.05, prn = 0.05,pwh = 0):
             if grid[i,j] != 'W':
                 if np.random.random() < pw:
                     grid[i, j] = 'X'
-                elif np.random.random() < prp:
-                    grid[i, j] = str(np.random.randint(1, 9))
-                elif np.random.random() < prn:
-                    grid[i, j] = str(-np.random.randint(1, 9))
                 else:
                     grid[i, j] = '0'
     grid[size-1, 1] = 'S'
@@ -54,7 +50,26 @@ def generate_random_world(size,pw = 0.1, prp = 0.05, prn = 0.05,pwh = 0):
                             grid[x,y] = random_char
                             break                
                 break
-
+        #place positive reward
+    for i in range(prp):
+        while True:
+            x = np.random.randint(1, size)
+            y = np.random.randint(1, size)
+            if grid[x,y] == '0':
+                #random int between 1 - 9
+                random_int = np.random.randint(1, 10)
+                grid[x,y] = str(random_int)
+                break
+        #place negative reward
+    for i in range(prn):
+        while True:
+            x = np.random.randint(1, size)
+            y = np.random.randint(1, size)
+            if str(grid[x,y]) == '0' :
+                #random int between 1 - 9
+                random_int = np.random.randint(1, 10)
+                grid[x,y] = str(-1*random_int)
+                break
     return grid
 class GridWorld(gym.Env):
     '''
@@ -371,8 +386,8 @@ if __name__ == '__main__':
     parser.add_argument('--seed', type=int, default=2, help='random seed (Default is 2)')
     parser.add_argument('--size', type=int, default=5, help='size of the grid (Default is 5)')
     parser.add_argument('-pW', metavar='pW', type=float, default=0.2, help='probability of a wall in a random grid (Default is 0.2)')
-    parser.add_argument('-prP', metavar='prP', type=float, default=0.1, help='probability of a positive reward in a random grid (Default is 0.1)')
-    parser.add_argument('-prN', metavar='prN', type=float, default=0.1, help='probability of a negative reward in a random grid (Default is 0.1)')
+    parser.add_argument('-nrP', metavar='nrP', type=int, default=1, help='number of a positive reward in a random grid (Default is 1)')
+    parser.add_argument('-nrN', metavar='nrN', type=int, default=1, help='number of a negative reward in a random grid (Default is 1)')
     parser.add_argument('-nWh', metavar='nWh', type=int, default=0, help='number of a wormhole in a random grid (Default is 0)')
     parser.add_argument('-maxT', metavar='maxT', type=int, default=100, help='maximum number of steps in an episode (Default is 100)')
     parser.add_argument('-start_eps', metavar='start_eps', type=float, default=0.9, help='starting epsilon for epsilon-greedy (Default is 0.9)')
@@ -383,7 +398,7 @@ if __name__ == '__main__':
     parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
     args = parser.parse_args()
     np.random.seed(args.seed)
-    env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.prP, args.prN, args.nWh,args.size, args.maxT)
+    env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.nrP, args.nrN, args.nWh,args.size, args.maxT)
     if args.mode == 'human':
         env.reset()
         env.render()
@@ -411,10 +426,15 @@ if __name__ == '__main__':
         printPolicy(Q, env.gridsize(), env.grid)
         print('Average training reward: ', np.mean(r))
         #plot average 10 training reward
+        #set figure size
+        plt.figure(figsize=(10, 5))
         plt.plot(np.convolve(r, np.ones((30,))/30, mode='valid'))
         plt.title('Average 30 training reward of Sarsa')
-        plt.xlabel('30 Episode')
+        plt.xlabel('Episode')
         plt.ylabel('Average reward')
+        #show other parameters below the plot
+        #plt.annotate('p = ' + str(args.p) + ', r = ' + str(args.r) + ', alpha = ' + str(args.alpha) + ', gamma = ' + str(args.gamma) + ', epsilon = ' + str(args.start_eps) + ', end_epsilon = ' + str(args.end_eps), (0,0), (20, -40), xycoords='axes fraction', textcoords='offset points', va='top')
+        #plt.figtext(0.5, 0.01, 'p = ' + str(args.p) + ', r = ' + str(args.r) + ', alpha = ' + str(args.alpha) + ', gamma = ' + str(args.gamma) + ', epsilon = ' + str(args.start_eps) + ', end_epsilon = ' + str(args.end_eps), wrap=True, horizontalalignment='center', fontsize=12)
         plt.show()
         r = []
         for i in range(args.nEpT):
@@ -441,10 +461,12 @@ if __name__ == '__main__':
         printPolicy(Q, env.gridsize(), env.grid)
         print('Average training reward: ', np.mean(r))
         #plot average 10 training reward
+        plt.figure(figsize=(10, 5))
         plt.plot(np.convolve(r, np.ones((30,))/30, mode='valid'))
         plt.title('Average 30 training reward of Q-learning')
-        plt.xlabel('30 Episode')
+        plt.xlabel('Episode')
         plt.ylabel('Average reward')
+        #plt.annotate('p = ' + str(args.p) + ', r = ' + str(args.r) + ', alpha = ' + str(args.alpha) + ', gamma = ' + str(args.gamma) + ', epsilon = ' + str(args.start_eps) + ', end_epsilon = ' + str(args.end_eps), (0,0), (50, 40), xycoords='axes fraction', textcoords='offset points', va='top')
         plt.show()
         #testing: run the game for nEpT episodes and print the average reward
         r = []
