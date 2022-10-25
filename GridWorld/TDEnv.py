@@ -266,7 +266,7 @@ def player_game(env):
         if done:
             print(f"Game over. Total reward: {reward}")
             break
-def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
+def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1):
     '''
     This function will generate Q from SARSA algorithm
     '''
@@ -274,7 +274,7 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
     total_rewards = []
     for t in range(n_episodes):
        # epsilon = 1/(t+1)
-        epsilon = max(epsilon - ((epsilon - 0.01)/n_episodes),0.01)
+        epsilon = max(epsilon - ((epsilon - end_epsilon)/n_episodes),end_epsilon)
         state = env.reset()
         action = epsilon_greedy(Q, state, 4, epsilon)
         done = False
@@ -290,14 +290,14 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
             reward_e += reward
         total_rewards.append(reward_e)
     return Q, np.array(total_rewards)
-def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9):
+def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.01):
     '''
     This function will generate Q from Q-learning algorithm
     '''
     Q = defaultdict(lambda: np.zeros(4))
     total_reward = []
     for t in range(n_episodes):
-        epsilon = max(epsilon - ((epsilon - 0.01)/n_episodes),0.01)
+        epsilon = max(epsilon - ((epsilon - end_epsilon)/n_episodes),end_epsilon)
         state = env.reset()
         done = False
         reward_e = 0
@@ -377,6 +377,10 @@ if __name__ == '__main__':
     parser.add_argument('-nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
     parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
     parser.add_argument('-maxT', metavar='maxT', type=int, default=100, help='maximum number of steps in an episode (Default is 100)')
+    parser.add_argument('-start_eps', metavar='start_eps', type=float, default=0.9, help='starting epsilon for epsilon-greedy (Default is 0.9)')
+    parser.add_argument('-end_eps', metavar='end_eps', type=float, default=0.01, help='ending epsilon for epsilon-greedy (Default is 0.01)')
+    parser.add_argument('-alpha', metavar='alpha', type=float, default=0.5, help='learning rate (Default is 0.5)')
+    parser.add_argument('-gamma', metavar='gamma', type=float, default=0.9, help='discount factor (Default is 0.9)')
     args = parser.parse_args()
     np.random.seed(args.seed)
     env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.prP, args.prN, args.nWh,args.size, args.maxT)
@@ -392,7 +396,7 @@ if __name__ == '__main__':
             state, reward, done, _, _ = env.step(action)
             env.render()
     elif args.mode == 'sarsa':
-        Q, r = sarsa(env, args.nEp)
+        Q, r = sarsa(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma)
         state = env.reset()
         env.render()
         #play the game
@@ -406,11 +410,11 @@ if __name__ == '__main__':
         #for each point in the grid, print the q value
         printPolicy(Q, env.gridsize(), env.grid)
         print('Average training reward: ', np.mean(r))
-        #plot training reward
-        plt.plot(r)
-        plt.xlabel('Episode')
-        plt.ylabel('Reward')
-        plt.title('Training Reward')
+        #plot average 10 training reward
+        plt.plot(np.convolve(r, np.ones((30,))/30, mode='valid'))
+        plt.title('Average 30 training reward of Sarsa')
+        plt.xlabel('30 Episode')
+        plt.ylabel('Average reward')
         plt.show()
         r = []
         for i in range(args.nEpT):
@@ -423,7 +427,7 @@ if __name__ == '__main__':
             r.append(reward)
         print('Average testing reward: ', np.mean(r))
     elif args.mode == 'q':
-        Q,r = q_learning(env, args.nEp)
+        Q,r = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma)
         state = env.reset()
         env.render()
         #play the game
@@ -436,10 +440,11 @@ if __name__ == '__main__':
             action = next_action
         printPolicy(Q, env.gridsize(), env.grid)
         print('Average training reward: ', np.mean(r))
-        plt.plot(r)
-        plt.xlabel('Episode')
-        plt.ylabel('Reward')
-        plt.title('Training Reward')
+        #plot average 10 training reward
+        plt.plot(np.convolve(r, np.ones((30,))/30, mode='valid'))
+        plt.title('Average 30 training reward of Q-learning')
+        plt.xlabel('30 Episode')
+        plt.ylabel('Average reward')
         plt.show()
         #testing: run the game for nEpT episodes and print the average reward
         r = []
@@ -454,10 +459,3 @@ if __name__ == '__main__':
         print('Average testing reward: ', np.mean(r))
     else:
         raise Exception("Invalid mode provided.")
-    #print the policy as a heatmap
-    #plt.imshow(policy, cmap='hot', interpolation='nearest')
-    #plt.show()
-    #now
-    
-
-
