@@ -290,6 +290,7 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,de
     '''
     Q = defaultdict(lambda: np.zeros(4))
     SP = np.zeros(env.gridsize())
+    SPT = np.zeros(env.gridsize())
     total_rewards = []
     for t in range(n_episodes):
        # epsilon = 1/(t+1)
@@ -313,8 +314,10 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,de
             action = next_action
             reward_e += reward
         total_rewards.append(reward_e)
-        SP = SP/np.sum(SP)
-    return Q, np.array(total_rewards), SP
+        SPT = SPT + SP/np.sum(SP)
+        SP = np.zeros(env.gridsize())
+    SPT = SPT/n_episodes
+    return Q, np.array(total_rewards), SPT
 def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.01,decay = True):
     '''
     This function will generate Q from Q-learning algorithm
@@ -322,6 +325,7 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0
     Q = defaultdict(lambda: np.zeros(4))
     total_reward = []
     SP = np.zeros(env.gridsize())
+    SPT = np.zeros(env.gridsize())
     for t in range(n_episodes):
         if decay:
             epsilon = max(epsilon - ((epsilon - end_epsilon)/(0.5*n_episodes)),end_epsilon)
@@ -344,7 +348,11 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0
             reward_e += reward
         SP = SP/np.sum(SP)
         total_reward.append(reward_e)
-    return Q, np.array(total_reward), SP
+        SPT = SPT + SP
+        SP = np.zeros(env.gridsize())
+    SPT = SPT/n_episodes
+    #return Q, np.array(total_rewards), SPT
+    return Q, np.array(total_reward), SPT
 def printPolicy(Q, grid_size, grid):
     '''
     This function will print the action that maximize Q as the arrow
@@ -423,7 +431,7 @@ def Heatmap(SP,grid):
                     #print(f'{grid[i, j]}', end='\t')
                     print('\033[32m' + str(grid[i, j]) + '\033[0m', end='\t')
                 else:
-                    if int(SP[i,j]) == 0:
+                    if SP[i,j] == 0:
                         print(' ', end='\t')
                     else:
                         print(f'{SP[i,j]:.1f}', end='\t')
