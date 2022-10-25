@@ -1,8 +1,9 @@
+from matplotlib.pyplot import plot
 import numpy as np
 import gym
 import argparse
 from collections import defaultdict
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 import os
 def is_valid_file(parser, arg):
     if not os.path.exists(arg):
@@ -348,6 +349,7 @@ def printPolicy(Q, grid_size, grid):
     This function will print the action that maximize Q as the arrow
     '''
     #raise NotImplementedError
+    print("Policy")
     policy = -1 * np.ones(grid_size)
     for i in range(grid_size[0]):
         for j in range(grid_size[1]):
@@ -440,7 +442,12 @@ if __name__ == '__main__':
     parser.add_argument('-nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
     parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
     parser.add_argument('-epsDecay', metavar='epsDecay', type=bool, default=True, help='epsilon decay as [(eps - end_eps)/0.5n] (Default is True)')
+    parser.add_argument('-plotext', metavar='plotext', type=bool, default=False, help='plot the graph with plotext (Default is False, will use matplotlib)')
     args = parser.parse_args()
+    if args.plotext:
+        import plotext as plt
+    else:
+        import matplotlib.pyplot as plt
     np.random.seed(args.seed)
     env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.nrP, args.nrN, args.nWh,args.size, args.maxT)
     if args.mode == 'human':
@@ -472,7 +479,8 @@ if __name__ == '__main__':
         Heatmap(SP,env.grid)
         #plot average 10 training reward
         #set figure size
-        plt.figure(figsize=(10, 5))
+        if not args.plotext:
+            plt.figure(figsize=(10, 5))
         plt.plot(np.convolve(r, np.ones((30,))/30, mode='valid'))
         plt.title('Average 30 training reward of Sarsa')
         plt.xlabel('Episode')
@@ -507,7 +515,9 @@ if __name__ == '__main__':
         Heatmap(SP,env.grid)
         print('Average training reward: ', np.mean(r))
         #plot average 10 training reward
-        plt.figure(figsize=(10, 5))
+        if not args.plotext:
+            plt.figure(figsize=(10, 5))
+        #plt.figure(figsize=(10, 5))
         plt.plot(np.convolve(r, np.ones((30,))/30, mode='valid'))
         plt.title('Average 30 training reward of Q-learning')
         plt.xlabel('Episode')
@@ -527,4 +537,4 @@ if __name__ == '__main__':
         print('Average testing reward: ', np.mean(r))
     else:
         raise Exception("Invalid mode provided.")
-#python TDEnv.py --size 10 --seed 213215 --r -0.012 -alpha 0.6 -gamma 0.9 -nrP 1 -nrN 1 -p 0.7 -pW 0.2 -start_eps 0.5 -end_eps 0 -nEp 100 -nWh 1 -epsDecay True q
+#python TDEnv.py --size 10 --seed 213215 --r -0.012 -alpha 0.6 -gamma 0.9 -nrP 1 -nrN 1 -p 1 -pW 0.2 -start_eps 1 -end_eps 0 -nEp 1000 -nWh 1 -epsDecay True q
