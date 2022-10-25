@@ -281,7 +281,7 @@ def player_game(env):
         if done:
             print(f"Game over. Total reward: {reward}")
             break
-def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1):
+def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,decay = True):
     '''
     This function will generate Q from SARSA algorithm
     '''
@@ -289,7 +289,8 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1):
     total_rewards = []
     for t in range(n_episodes):
        # epsilon = 1/(t+1)
-        epsilon = max(epsilon - ((epsilon - end_epsilon)/n_episodes),end_epsilon)
+        if decay:
+            epsilon = max(epsilon - ((epsilon - end_epsilon)/(0.5*n_episodes)),end_epsilon)
         state = env.reset()
         action = epsilon_greedy(Q, state, 4, epsilon)
         done = False
@@ -305,14 +306,15 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1):
             reward_e += reward
         total_rewards.append(reward_e)
     return Q, np.array(total_rewards)
-def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.01):
+def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.01,decay = True):
     '''
     This function will generate Q from Q-learning algorithm
     '''
     Q = defaultdict(lambda: np.zeros(4))
     total_reward = []
     for t in range(n_episodes):
-        epsilon = max(epsilon - ((epsilon - end_epsilon)/n_episodes),end_epsilon)
+        if decay:
+            epsilon = max(epsilon - ((epsilon - end_epsilon)/(0.5*n_episodes)),end_epsilon)
         state = env.reset()
         done = False
         reward_e = 0
@@ -396,6 +398,7 @@ if __name__ == '__main__':
     parser.add_argument('-gamma', metavar='gamma', type=float, default=0.9, help='discount factor (Default is 0.9)')
     parser.add_argument('-nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
     parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
+    parser.add_argument('-epsDecay', metavar='epsDecay', type=bool, default=True, help='epsilon decay as [(eps - end_eps)/0.5n] (Default is True)')
     args = parser.parse_args()
     np.random.seed(args.seed)
     env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.nrP, args.nrN, args.nWh,args.size, args.maxT)
@@ -411,7 +414,7 @@ if __name__ == '__main__':
             state, reward, done, _, _ = env.step(action)
             env.render()
     elif args.mode == 'sarsa':
-        Q, r = sarsa(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma)
+        Q, r = sarsa(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
         state = env.reset()
         env.render()
         #play the game
@@ -447,7 +450,7 @@ if __name__ == '__main__':
             r.append(reward)
         print('Average testing reward: ', np.mean(r))
     elif args.mode == 'q':
-        Q,r = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma)
+        Q,r = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
         state = env.reset()
         env.render()
         #play the game
