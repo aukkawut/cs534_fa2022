@@ -31,3 +31,7 @@ You can set the random seed, the size of the board, the probability of having a 
 
 ### Training Customization
 There are some customization on training, this includes the parameters like alpha and gamma, the epsilon decay, number of runs for finding Q, number of moves to terminated, etc. Please use the helping function for more details.
+
+## Output?
+
+
