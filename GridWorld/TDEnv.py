@@ -567,7 +567,7 @@ if __name__ == '__main__':
         if denom == 0:
             warnings.warn(f"Agent never reached the terminal state (halting condition: step > {env.maxTimestep}) Changing halting by setting -maxT to higher value", RuntimeWarning, stacklevel=2)
             #denom = np.finfo(float).eps
-            print('Average testing reward: ', -np.inf)
+            print(f'Average testing reward: {-np.inf} ({np.mean(r)})')
         else:
             print('Average testing reward: ', np.sum(r)/denom)
     elif args.mode == 'q':
@@ -618,7 +618,7 @@ if __name__ == '__main__':
             r.append(reward)
         if denom == 0:
             warnings.warn(f"Agent never reached the terminal state (halting condition: step > {env.maxTimestep}) Changing halting by setting -maxT to higher value", RuntimeWarning, stacklevel=2)
-            print(f'Average testing reward: {-np.inf}')
+            print(f'Average testing reward: {-np.inf} ({np.mean(r)})')
             #denom = np.finfo(float).eps
         else:
             print('Average testing reward: ', np.sum(r)/denom)
