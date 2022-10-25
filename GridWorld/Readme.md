@@ -5,7 +5,7 @@ Yes, this is RL stuff. Ripoff frozen lake
 ## How to run this?
 
 ### Requirements
-Make sure that you have `gym >= 0.25.2`, `matplotlib` and `numpy` installed.
+Make sure that you have `gym >= 0.25.2`, [`matplotlib` (plot outside) or `plotext` (plot inside terminal)] and `numpy` installed. To use `plotext` use tag `-plotext True`, if not, matplotlib will be used as a default option.
 
 ### Getting Start
 Start from the helping function
