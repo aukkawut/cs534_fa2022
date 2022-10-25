@@ -1,8 +1,9 @@
-from matplotlib.pyplot import plot
 import numpy as np
 import gym
 import argparse
 from collections import defaultdict
+import os
+os.system("")
 #import matplotlib.pyplot as plt
 import os
 def is_valid_file(parser, arg):
@@ -372,13 +373,26 @@ def printPolicy(Q, grid_size, grid):
                     #blue
                     print('\033[34m' + grid[i, j] + '\033[0m', end='\t')
             elif policy[i, j] == 0:
-                print('↑', end='\t')
+                #if windows, use '^' instead of '↑'
+                if os.name == 'nt':
+                    print('^', end='\t')
+                else:
+                    print('↑', end='\t')
             elif policy[i, j] == 1:
-                print('↓', end='\t')
+                if os.name == 'nt':
+                    print('v', end='\t')
+                else:
+                    print('↓', end='\t')
             elif policy[i, j] == 2:
-                print('←', end='\t')
+                if os.name == 'nt':
+                    print('<', end='\t')
+                else:
+                    print('←', end='\t')
             elif policy[i, j] == 3:
-                print('→', end='\t')
+                if os.name == 'nt':
+                    print('>', end='\t')
+                else:
+                    print('→', end='\t')
             else:
                 if str(grid[i, j]) != '0' and str(grid[i, j]) != 'S':
                     #print the reward in green
