@@ -347,7 +347,7 @@ def printPolicy(Q, grid_size, grid):
     #print the grid with empty squares replace with our policy
     for i in range(grid_size[0]):
         for j in range(grid_size[1]):
-            if not str(grid[i, j]).lstrip("-").isdigit():
+            if not str(grid[i, j]).lstrip("-").isdigit() and str(grid[i,j]) != 'S':
                 #color X with red
                 if grid[i,j] == 'X':
                     print('\033[31m' + grid[i, j] + '\033[0m', end='\t')
@@ -363,7 +363,7 @@ def printPolicy(Q, grid_size, grid):
             elif policy[i, j] == 3:
                 print('→', end='\t')
             else:
-                if str(grid[i, j]) != '0':
+                if str(grid[i, j]) != '0' and str(grid[i, j]) != 'S':
                     #print the reward in green
                     #print(f'{grid[i, j]}', end='\t')
                     print('\033[32m' + str(grid[i, j]) + '\033[0m', end='\t')
