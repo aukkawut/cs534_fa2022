@@ -3,6 +3,7 @@ import gym
 import argparse
 from collections import defaultdict
 import os
+import warnings
 os.system("")
 #import matplotlib.pyplot as plt
 import os
@@ -329,7 +330,12 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,de
         SPT = SPT + SP/np.sum(SP)
         SP = np.zeros(env.gridsize())
     SPT = SPT/n_episodes
-    return Q, np.array(total_rewards), SPT, np.sum(total_rewards)/denom
+    if denom == 0:
+        warnings.warn(f"Agent never reached the terminal state (halting condition: step > {env.maxTimestep}) Changing halting by setting -maxT to higher value", RuntimeWarning, stacklevel=2)
+            #denom = np.finfo(float).eps
+        return Q, np.array(total_rewards), SPT, -np.inf
+    else:
+        return Q, np.array(total_rewards), SPT, np.sum(total_rewards)/denom
 def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.01,decay = True):
     '''
     This function will generate Q from Q-learning algorithm
@@ -370,7 +376,12 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0
         SP = np.zeros(env.gridsize())
     SPT = SPT/n_episodes
     #return Q, np.array(total_rewards), SPT
-    return Q, np.array(total_reward), SPT, np.sum(total_reward)/denom
+    if denom == 0:
+        warnings.warn(f"Agent never reached the terminal state (halting condition: step > {env.maxTimestep}) Changing halting by setting -maxT to higher value", RuntimeWarning, stacklevel=2)
+            #denom = np.finfo(float).eps
+        return Q, np.array(total_reward), SPT, -np.inf
+    else:
+        return Q, np.array(total_reward), SPT, np.sum(total_reward)/denom
 def printPolicy(Q, grid_size, grid):
     '''
     This function will print the action that maximize Q as the arrow
@@ -553,7 +564,12 @@ if __name__ == '__main__':
             if done:
                 denom +=1
             r.append(reward)
-        print('Average testing reward: ', np.sum(r)/denom)
+        if denom == 0:
+            warnings.warn(f"Agent never reached the terminal state (halting condition: step > {env.maxTimestep}) Changing halting by setting -maxT to higher value", RuntimeWarning, stacklevel=2)
+            #denom = np.finfo(float).eps
+            print('Average testing reward: ', -np.inf)
+        else:
+            print('Average testing reward: ', np.sum(r)/denom)
     elif args.mode == 'q':
         Q,r,SP,mr = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
         state = env.reset()
@@ -600,7 +616,13 @@ if __name__ == '__main__':
             if done:
                 denom += 1
             r.append(reward)
-        print('Average testing reward: ', np.sum(r)/denom)
+        if denom == 0:
+            warnings.warn(f"Agent never reached the terminal state (halting condition: step > {env.maxTimestep}) Changing halting by setting -maxT to higher value", RuntimeWarning, stacklevel=2)
+            print(f'Average testing reward: {-np.inf}')
+            #denom = np.finfo(float).eps
+        else:
+            print('Average testing reward: ', np.sum(r)/denom)
+        
     else:
         raise Exception("Invalid mode provided.")
 #python TDEnv.py --size 10 --seed 213215 --r -0.012 -alpha 0.6 -gamma 0.9 -nrP 1 -nrN 1 -p 1 -pW 0.2 -start_eps 1 -end_eps 0 -nEp 1000 -nWh 1 -epsDecay True q
