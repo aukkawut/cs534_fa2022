@@ -126,6 +126,12 @@ class GridWorld(gym.Env):
             for line in gridfile:
                 self.grid.append(line.strip().split('\t'))
             self.grid = np.array(self.grid)
+            #if the first entry is not wall, then add a wall enclosing the grid
+            if self.grid[0,0] != 'X':
+                self.grid = np.insert(self.grid, 0, 'X', axis=0)
+                self.grid = np.insert(self.grid, 0, 'X', axis=1)
+                self.grid = np.insert(self.grid, self.grid.shape[0], 'X', axis=0)
+                self.grid = np.insert(self.grid, self.grid.shape[1], 'X', axis=1)
         except:
             try:
                 self.grid = generate_random_world(self.size,self.pW,self.prP,self.prN,self.pWh)
@@ -512,7 +518,10 @@ if __name__ == '__main__':
     elif args.mode == 'random':
         env.reset()
         env.render()
-        while not env.done or env.truncated:
+        while not env.done:
+            if env.truncated:
+                warnings.warn("Episode truncated at {} steps".format(env.maxTimestep), RuntimeWarning, stacklevel=2)
+                break
             action = np.random.randint(0, 4)
             state, reward, done, truncated, _ = env.step(action)
             env.render()
