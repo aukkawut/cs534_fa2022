@@ -431,7 +431,7 @@ def Heatmap(SP,grid):
     '''
     This function will print the percentage (in int) of the state visitation masked by the grid
     '''
-    print("Heatmap of state visitation (small number omitted)")
+    print("Heatmap of state visitation (yellow means more than average)")
     SP = SP*100
     SP = np.ma.masked_where(grid == 'X', SP)
     for i in range(SP.shape[0]):
@@ -452,7 +452,11 @@ def Heatmap(SP,grid):
                     if SP[i,j] == 0:
                         print(' ', end='\t')
                     else:
-                        print(f'{SP[i,j]:.1f}', end='\t')
+                        #color the state that visited more than average with yellow
+                        if SP[i,j] > np.mean(SP):
+                            print('\033[33m' + f'{SP[i,j]:.1f}' + '\033[0m', end='\t')
+                        else:
+                            print(f'{SP[i,j]:.1f}', end='\t')
         print()
     
 if __name__ == '__main__':
