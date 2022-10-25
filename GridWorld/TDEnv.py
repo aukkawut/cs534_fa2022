@@ -481,6 +481,8 @@ if __name__ == '__main__':
         #set figure size
         if not args.plotext:
             plt.figure(figsize=(10, 5))
+        else:
+            plt.plotsize(80, 20)
         plt.plot(np.convolve(r, np.ones((30,))/30, mode='valid'))
         plt.title('Average 30 training reward of Sarsa')
         plt.xlabel('Episode')
@@ -517,6 +519,8 @@ if __name__ == '__main__':
         #plot average 10 training reward
         if not args.plotext:
             plt.figure(figsize=(10, 5))
+        else:
+            plt.plotsize(80, 20)
         #plt.figure(figsize=(10, 5))
         plt.plot(np.convolve(r, np.ones((30,))/30, mode='valid'))
         plt.title('Average 30 training reward of Q-learning')
