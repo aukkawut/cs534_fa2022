@@ -4,11 +4,13 @@ import argparse
 from collections import defaultdict
 import os
 from pathlib import Path
+import wandb
 #import sys
 import warnings
 os.system("")
 #import matplotlib.pyplot as plt
 import os
+wandb.init(project="GridWorld", entity="aukkawut")
 def is_valid_file(parser, arg):
     if Path(arg).is_file():
         parser.error("The file %s does not exist!" % arg)
@@ -334,6 +336,7 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,de
             reward_e += reward
         if done:
             denom +=1
+        wandb.log({"Reward": reward_e, "Episode": t})
         total_rewards.append(reward_e)
         SPT = SPT + SP/np.sum(SP)
         SP = np.zeros(env.gridsize())
@@ -379,6 +382,8 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0
         if done:
             denom +=1
         SP = SP/np.sum(SP)
+        #log reward
+        wandb.log({"Reward": reward_e, "Episode": t})
         total_reward.append(reward_e)
         SPT = SPT + SP
         SP = np.zeros(env.gridsize())
@@ -484,9 +489,10 @@ if __name__ == '__main__':
         \033[1;33m GridWorld\033[0m :
         The lame and silly game
         """
+    #set up wandb hyperparameters
     parser = argparse.ArgumentParser(description=x)
     #make the mode: human, sarsa, and Q
-    parser.add_argument('mode', type=str, help='Mode of simulation: human, random, sarsa, q')
+    parser.add_argument('-mode',default = '', type=str, help='Mode of simulation: human, random, sarsa, q')
     parser.add_argument('-p', metavar='p', type=float, default=0.7,
                         help='probability of moving in the desired direction (Default is 0.7)')
     parser.add_argument('--gridfile', type=argparse.FileType('r'), default=None, help='load a grid from a file')
@@ -496,21 +502,24 @@ if __name__ == '__main__':
     parser.add_argument('-pW', metavar='pW', type=float, default=0.2, help='probability of a wall in a random grid (Default is 0.2)')
     parser.add_argument('-nrP', metavar='nrP', type=int, default=1, help='number of a positive reward in a random grid (Default is 1)')
     parser.add_argument('-nrN', metavar='nrN', type=int, default=1, help='number of a negative reward in a random grid (Default is 1)')
-    parser.add_argument('-nWh', metavar='nWh', type=int, default=0, help='number of a wormhole in a random grid (Default is 0)')
-    parser.add_argument('-maxT', metavar='maxT', type=int, default=100, help='maximum number of steps in an episode (Default is 100)')
-    parser.add_argument('-start_eps', metavar='start_eps', type=float, default=0.9, help='starting epsilon for epsilon-greedy (Default is 0.9)')
-    parser.add_argument('-end_eps', metavar='end_eps', type=float, default=0.01, help='ending epsilon for epsilon-greedy (Default is 0.01)')
+    parser.add_argument('--nWh', metavar='nWh', type=int, default=0, help='number of a wormhole in a random grid (Default is 0)')
+    parser.add_argument('--maxT', metavar='maxT', type=int, default=100, help='maximum number of steps in an episode (Default is 100)')
+    parser.add_argument('--start_eps', metavar='start_eps', type=float, default=0.9, help='starting epsilon for epsilon-greedy (Default is 0.9)')
+    parser.add_argument('--end_eps', metavar='end_eps', type=float, default=0.01, help='ending epsilon for epsilon-greedy (Default is 0.01)')
     parser.add_argument('-alpha', metavar='alpha', type=float, default=0.5, help='learning rate (Default is 0.5)')
     parser.add_argument('-gamma', metavar='gamma', type=float, default=0.9, help='discount factor (Default is 0.9)')
-    parser.add_argument('-nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
+    parser.add_argument('--nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
     parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
     parser.add_argument('-epsDecay', metavar='epsDecay', type=bool, default=True, help='epsilon decay as [(eps - end_eps)/0.5n] (Default is True)')
-    parser.add_argument('-plotext', metavar='plotext', type=bool, default=False, help='plot the graph with plotext (Default is False, will use matplotlib)')
+    #parser.add_argument('-plotext', metavar='plotext', type=bool, default=False, help='plot the graph with plotext (Default is False, will use matplotlib)')
+    
     args = parser.parse_args()
+    '''
     if args.plotext:
         import plotext as plt
     else:
         import matplotlib.pyplot as plt
+    '''
     np.random.seed(args.seed)
     env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.nrP, args.nrN, args.nWh,args.size, args.maxT)
     if args.mode == 'human':
@@ -529,6 +538,7 @@ if __name__ == '__main__':
             env.render()
     elif args.mode == 'sarsa':
         Q, r,SP,mr = sarsa(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
+        '''
         state = env.reset()
         env.render()
         #play the game
@@ -543,11 +553,13 @@ if __name__ == '__main__':
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
         #for each point in the grid, print the q value
-        printPolicy(Q, env.gridsize(), env.grid)
-        print('Average training reward: ', mr)
-        Heatmap(SP,env.grid)
+        #printPolicy(Q, env.gridsize(), env.grid)
+        #print('Average training reward: ', mr)
+        #Heatmap(SP,env.grid)
         #plot average 10 training reward
         #set figure size
+        '''
+        '''
         if not args.plotext:
             plt.figure(figsize=(10, 5))
         else:
@@ -560,6 +572,7 @@ if __name__ == '__main__':
         #plt.annotate('p = ' + str(args.p) + ', r = ' + str(args.r) + ', alpha = ' + str(args.alpha) + ', gamma = ' + str(args.gamma) + ', epsilon = ' + str(args.start_eps) + ', end_epsilon = ' + str(args.end_eps), (0,0), (20, -40), xycoords='axes fraction', textcoords='offset points', va='top')
         #plt.figtext(0.5, 0.01, 'p = ' + str(args.p) + ', r = ' + str(args.r) + ', alpha = ' + str(args.alpha) + ', gamma = ' + str(args.gamma) + ', epsilon = ' + str(args.start_eps) + ', end_epsilon = ' + str(args.end_eps), wrap=True, horizontalalignment='center', fontsize=12)
         plt.show()
+        '''
         r = []
         denom = 0
         for i in range(args.nEpT):
@@ -583,6 +596,7 @@ if __name__ == '__main__':
             print('Average testing reward: ', np.sum(r)/denom)
     elif args.mode == 'q':
         Q,r,SP,mr = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
+        '''
         state = env.reset()
         env.render()
         #play the game
@@ -596,12 +610,14 @@ if __name__ == '__main__':
             env.render()
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
+        '''
+        '''
         printPolicy(Q, env.gridsize(), env.grid)
         Heatmap(SP,env.grid)
         print('Average training reward: ', mr)
         #plot average 10 training reward
         if not args.plotext:
-            plt.figure(figsize=(10, 5))
+            plt.figure(figsize=(10, 5)) 
         else:
             plt.plotsize(100, 20)
         #plt.figure(figsize=(10, 5))
@@ -612,6 +628,7 @@ if __name__ == '__main__':
         #plt.annotate('p = ' + str(args.p) + ', r = ' + str(args.r) + ', alpha = ' + str(args.alpha) + ', gamma = ' + str(args.gamma) + ', epsilon = ' + str(args.start_eps) + ', end_epsilon = ' + str(args.end_eps), (0,0), (50, 40), xycoords='axes fraction', textcoords='offset points', va='top')
         plt.show()
         #testing: run the game for nEpT episodes and print the average reward
+        '''
         r = []
         denom = 0
         for i in range(args.nEpT):
