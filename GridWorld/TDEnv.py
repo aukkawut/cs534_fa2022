@@ -130,6 +130,7 @@ class GridWorld(gym.Env):
         self.observation_space = gym.spaces.Discrete(self.grid.shape[0] * self.grid.shape[1])
         self.start = np.argwhere(self.grid == 'S')[0]
         self.current = self.start
+        #print("start: ", self.start)
     def reset(self) -> None:
         '''
         This function resets the environment.
@@ -140,7 +141,7 @@ class GridWorld(gym.Env):
         self.action = None
         self.envAction = None
         self.timestep = 0
-        return self.current[0] * self.grid.shape[1] + self.current[1]
+        return (self.current[0],self.current[1])
     def step(self, action: int) -> tuple:
         '''
         This function takes the action and returns the next state, reward and done.
@@ -286,48 +287,62 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,de
     This function will generate Q from SARSA algorithm
     '''
     Q = defaultdict(lambda: np.zeros(4))
+    SP = np.zeros(env.gridsize())
     total_rewards = []
     for t in range(n_episodes):
        # epsilon = 1/(t+1)
         if decay:
             epsilon = max(epsilon - ((epsilon - end_epsilon)/(0.5*n_episodes)),end_epsilon)
         state = env.reset()
+        SP[state] += 1
         action = epsilon_greedy(Q, state, 4, epsilon)
         done = False
         reward_e = 0
+        eplen = 0
         while not done:
+            eplen += 1
             next_state, reward, done, _, _ = env.step(action)
             next_action = epsilon_greedy(Q, next_state, 4, epsilon)
             td_target = reward + gamma * Q[next_state][next_action]
             td_error = td_target - Q[state][action]
             Q[state][action] += alpha * td_error
             state = next_state
+            SP[state] += 1
             action = next_action
             reward_e += reward
         total_rewards.append(reward_e)
-    return Q, np.array(total_rewards)
+        SP = SP/np.sum(SP)
+    return Q, np.array(total_rewards), SP
 def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.01,decay = True):
     '''
     This function will generate Q from Q-learning algorithm
     '''
     Q = defaultdict(lambda: np.zeros(4))
     total_reward = []
+    SP = np.zeros(env.gridsize())
     for t in range(n_episodes):
         if decay:
             epsilon = max(epsilon - ((epsilon - end_epsilon)/(0.5*n_episodes)),end_epsilon)
         state = env.reset()
         done = False
         reward_e = 0
+        #print(state)
+        SP[state] += 1
+        eplen = 0
         while not done:
+            eplen +=1
             action = epsilon_greedy(Q, state, 4, epsilon)
             next_state, reward, done, _, _ = env.step(action)
             td_target = reward + gamma * np.max(Q[next_state])
             td_error = td_target - Q[state][action]
             Q[state][action] += alpha * td_error
             state = next_state
+            #print(state)
+            SP[state] += 1
             reward_e += reward
+        SP = SP/np.sum(SP)
         total_reward.append(reward_e)
-    return Q, np.array(total_reward)
+    return Q, np.array(total_reward), SP
 def printPolicy(Q, grid_size, grid):
     '''
     This function will print the action that maximize Q as the arrow
@@ -370,8 +385,34 @@ def printPolicy(Q, grid_size, grid):
                 else:
                     print(' ', end='\t')
         print()
-
-
+def Heatmap(SP,grid):
+    '''
+    This function will print the percentage (in int) of the state visitation masked by the grid
+    '''
+    print("Heatmap of state visitation (small number omitted)")
+    SP = SP*100
+    SP = np.ma.masked_where(grid == 'X', SP)
+    for i in range(SP.shape[0]):
+        for j in range(SP.shape[1]):
+            if not str(grid[i, j]).lstrip("-").isdigit() and str(grid[i,j]) != 'S':
+                #color X with red
+                if grid[i,j] == 'X':
+                    print('\033[31m' + grid[i, j] + '\033[0m', end='\t')
+                else:
+                    #blue
+                    print('\033[34m' + grid[i, j] + '\033[0m', end='\t')
+            else:
+                if str(grid[i, j]) != '0' and str(grid[i, j]) != 'S':
+                    #print the reward in green
+                    #print(f'{grid[i, j]}', end='\t')
+                    print('\033[32m' + str(grid[i, j]) + '\033[0m', end='\t')
+                else:
+                    if int(SP[i,j]) == 0:
+                        print(' ', end='\t')
+                    else:
+                        print(f'{SP[i,j]:.1f}', end='\t')
+        print()
+    
 if __name__ == '__main__':
     #create colored text for title
     x = """
@@ -414,7 +455,7 @@ if __name__ == '__main__':
             state, reward, done, _, _ = env.step(action)
             env.render()
     elif args.mode == 'sarsa':
-        Q, r = sarsa(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
+        Q, r,SP = sarsa(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
         state = env.reset()
         env.render()
         #play the game
@@ -428,6 +469,7 @@ if __name__ == '__main__':
         #for each point in the grid, print the q value
         printPolicy(Q, env.gridsize(), env.grid)
         print('Average training reward: ', np.mean(r))
+        Heatmap(SP,env.grid)
         #plot average 10 training reward
         #set figure size
         plt.figure(figsize=(10, 5))
@@ -450,7 +492,7 @@ if __name__ == '__main__':
             r.append(reward)
         print('Average testing reward: ', np.mean(r))
     elif args.mode == 'q':
-        Q,r = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
+        Q,r,SP = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
         state = env.reset()
         env.render()
         #play the game
@@ -462,6 +504,7 @@ if __name__ == '__main__':
             next_action = epsilon_greedy(Q, next_state, 4, 0)
             action = next_action
         printPolicy(Q, env.gridsize(), env.grid)
+        Heatmap(SP,env.grid)
         print('Average training reward: ', np.mean(r))
         #plot average 10 training reward
         plt.figure(figsize=(10, 5))
@@ -484,3 +527,4 @@ if __name__ == '__main__':
         print('Average testing reward: ', np.mean(r))
     else:
         raise Exception("Invalid mode provided.")
+#python TDEnv.py --size 10 --seed 213215 --r -0.012 -alpha 0.6 -gamma 0.9 -nrP 1 -nrN 1 -p 0.7 -pW 0.2 -start_eps 0.5 -end_eps 0 -nEp 100 -nWh 1 -epsDecay True q
