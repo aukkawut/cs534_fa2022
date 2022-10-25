@@ -357,6 +357,10 @@ def printPolicy(Q, grid_size, grid):
 
 if __name__ == '__main__':
     #create colored text for title
+    print('\033[1m' + '\033[4m' + 'GridWorld' + '\033[0m \n')
+    print('The quick way to test this code with your grid file is to run the following command:\n')
+    print('python3 TDEnv.py \033[3m<human|random|q|sarsa>\033[0m --gridfile \033[3m<gridfile>\033[0m\n')
+    print('for more long descriptive help (including the '+'\033[3m' + 'random world generator' + '\033[0m'+', run python3 gridworld.py -h\n')
     x = """
         \033[1;33m GridWorld\033[0m :
         The lame and silly game
@@ -364,8 +368,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=x)
     #make the mode: human, sarsa, and Q
     parser.add_argument('mode', type=str, help='Mode of simulation: human, random, sarsa, q')
-    parser.add_argument('-p', metavar='p', type=float, default=0.2,
-                        help='probability of moving in the desired direction (Default is 0.2)')
+    parser.add_argument('-p', metavar='p', type=float, default=0.7,
+                        help='probability of moving in the desired direction (Default is 0.7)')
     parser.add_argument('--gridfile', type=argparse.FileType('r'), default=None, help='load a grid from a file')
     parser.add_argument('--r', type=float, default=-0.2, help='reward for each step (Default is -0.2)')
     parser.add_argument('--seed', type=int, default=2, help='random seed (Default is 2)')
@@ -374,13 +378,13 @@ if __name__ == '__main__':
     parser.add_argument('-prP', metavar='prP', type=float, default=0.1, help='probability of a positive reward in a random grid (Default is 0.1)')
     parser.add_argument('-prN', metavar='prN', type=float, default=0.1, help='probability of a negative reward in a random grid (Default is 0.1)')
     parser.add_argument('-nWh', metavar='nWh', type=int, default=0, help='number of a wormhole in a random grid (Default is 0)')
-    parser.add_argument('-nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
-    parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
     parser.add_argument('-maxT', metavar='maxT', type=int, default=100, help='maximum number of steps in an episode (Default is 100)')
     parser.add_argument('-start_eps', metavar='start_eps', type=float, default=0.9, help='starting epsilon for epsilon-greedy (Default is 0.9)')
     parser.add_argument('-end_eps', metavar='end_eps', type=float, default=0.01, help='ending epsilon for epsilon-greedy (Default is 0.01)')
     parser.add_argument('-alpha', metavar='alpha', type=float, default=0.5, help='learning rate (Default is 0.5)')
     parser.add_argument('-gamma', metavar='gamma', type=float, default=0.9, help='discount factor (Default is 0.9)')
+    parser.add_argument('-nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
+    parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
     args = parser.parse_args()
     np.random.seed(args.seed)
     env = GridWorld(args.p, args.r, args.gridfile, args.pW, args.prP, args.prN, args.nWh,args.size, args.maxT)
