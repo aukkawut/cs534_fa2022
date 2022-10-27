@@ -492,7 +492,7 @@ if __name__ == '__main__':
     #set up wandb hyperparameters
     parser = argparse.ArgumentParser(description=x)
     #make the mode: human, sarsa, and Q
-    parser.add_argument('-mode',default = '', type=str, help='Mode of simulation: human, random, sarsa, q')
+    parser.add_argument('-mode',default = 'sarsa', type=str, help='Mode of simulation: human, random, sarsa, q')
     parser.add_argument('-p', metavar='p', type=float, default=0.7,
                         help='probability of moving in the desired direction (Default is 0.7)')
     parser.add_argument('--gridfile', type=argparse.FileType('r'), default=None, help='load a grid from a file')
@@ -510,7 +510,7 @@ if __name__ == '__main__':
     parser.add_argument('-gamma', metavar='gamma', type=float, default=0.9, help='discount factor (Default is 0.9)')
     parser.add_argument('--nEp', metavar='nEp', type=int, default=10000, help='number of episodes (Default is 10000)')
     #parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
-    parser.add_argument('-epsDecay', metavar='epsDecay', type=bool, default=True, help='epsilon decay as [(eps - end_eps)/0.5n] (Default is True)')
+    parser.add_argument('--epsDecay', metavar='epsDecay', type=bool, default=True, help='epsilon decay as [(eps - end_eps)/0.5n] (Default is True)')
     #parser.add_argument('-plotext', metavar='plotext', type=bool, default=False, help='plot the graph with plotext (Default is False, will use matplotlib)')
     
     args = parser.parse_args()
