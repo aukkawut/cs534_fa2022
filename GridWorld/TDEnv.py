@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 #import sys
 import warnings
+import time
 os.system("")
 #import matplotlib.pyplot as plt
 import os
@@ -299,7 +300,7 @@ def player_game(env):
         if done:
             print(f"Game over. Total reward: {reward}")
             break
-def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,decay = True):
+def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,decay = True,endtime = None):
     '''
     This function will generate Q from SARSA algorithm
     '''
@@ -308,8 +309,14 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,de
     SPT = np.zeros(env.gridsize())
     total_rewards = []
     denom = 0
+    if endtime is not None:
+        starttime = time.time()
     for t in range(n_episodes):
        # epsilon = 1/(t+1)
+        currenttime = time.time()
+        if endtime is not None:
+            if currenttime - starttime > endtime:
+                break
         if decay:
             epsilon = max(epsilon - ((epsilon - end_epsilon)/(0.5*n_episodes)),end_epsilon)
         state = env.reset()
@@ -344,7 +351,7 @@ def sarsa(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.1,de
         return Q, np.array(total_rewards), SPT, -np.inf
     else:
         return Q, np.array(total_rewards), SPT, np.sum(total_rewards)/denom
-def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.01,decay = True):
+def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0.01,decay = True,endtime=None):
     '''
     This function will generate Q from Q-learning algorithm
     '''
@@ -353,7 +360,14 @@ def q_learning(env, n_episodes, gamma=1.0, alpha=0.5, epsilon=0.9, end_epsilon=0
     SP = np.zeros(env.gridsize())
     SPT = np.zeros(env.gridsize())
     denom = 0
+    if endtime is not None:
+        starttime = time.time()
     for t in range(n_episodes):
+        
+        if endtime is not None:
+            currenttime = time.time()
+            if currenttime - starttime > endtime:
+                break
         if decay:
             epsilon = max(epsilon - ((epsilon - end_epsilon)/(0.5*n_episodes)),end_epsilon)
         state = env.reset()
@@ -506,6 +520,7 @@ if __name__ == '__main__':
     parser.add_argument('-nEpT', metavar='nEpT', type=int, default=100, help='number of episodes for testing (Default is 100)')
     parser.add_argument('-epsDecay', metavar='epsDecay', type=bool, default=True, help='epsilon decay as [(eps - end_eps)/0.5n] (Default is True)')
     parser.add_argument('-plotext', metavar='plotext', type=bool, default=False, help='plot the graph with plotext (Default is False, will use matplotlib)')
+    parser.add_argument('-t',metavar='t', type=float, default=None, help='runtime (in second) for training (default is None)')
     args = parser.parse_args()
     if args.plotext:
         import plotext as plt
@@ -528,7 +543,7 @@ if __name__ == '__main__':
             state, reward, done, truncated, _ = env.step(action)
             env.render()
     elif args.mode == 'sarsa':
-        Q, r,SP,mr = sarsa(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
+        Q, r,SP,mr = sarsa(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay, endtime=args.t)
         state = env.reset()
         env.render()
         #play the game
@@ -582,7 +597,7 @@ if __name__ == '__main__':
         else:
             print('Average testing reward: ', np.sum(r)/denom)
     elif args.mode == 'q':
-        Q,r,SP,mr = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay)
+        Q,r,SP,mr = q_learning(env, args.nEp, epsilon = args.start_eps, end_epsilon = args.end_eps, alpha = args.alpha, gamma = args.gamma, decay = args.epsDecay, endtime=args.t)
         state = env.reset()
         env.render()
         #play the game
@@ -636,4 +651,4 @@ if __name__ == '__main__':
         
     else:
         raise Exception("Invalid mode provided.")
-#python TDEnv.py --size 10 --seed 213215 --r -0.012 -alpha 0.6 -gamma 0.9 -nrP 1 -nrN 1 -p 1 -pW 0.2 -start_eps 1 -end_eps 0 -nEp 1000 -nWh 1 -epsDecay True q
+#python TDEnv.py --size 10 -alpha 0.6 -gamma 0.9 -nrP 1 -nrN 2 -p 1 -pW 0.2 -start_eps 1 -end_eps 0 -nEp 1000 -nWh 1 -epsDecay True --r -0.012 --seed 213215 q
