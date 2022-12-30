@@ -51,7 +51,7 @@ Then, after the training is done and the example run is also done, the policy wi
 ![policy](images/PolicyReward.png)
 The arrow representing the action that the agent should do given that state. Then, we will have the average training (over all training episodes) and average testing reward.
 
-And there will be a heatmap for state visitation highlighted
+And there will be a heatmap for state visitation highlighted (slightly bug, does not sum to 1)
 ![Heatmap](images/Heatmap.png)
 
 Lastly, there will be a plot of average of every 30 episodic rewards generated.
